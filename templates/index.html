@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototype Intelligent WAF - XSS Defense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: #e2e8f0;
+            /* Slate 200 */
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .tab-inactive {
+            color: #94a3b8;
+        }
+
+        .tab-inactive:hover {
+            color: #e2e8f0;
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Hide scrollbar for IE, Edge and Firefox */
+        body {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: #e2e8f0;
+            /* Slate 200 */
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .tab-inactive {
+            color: #94a3b8;
+        }
+
+        .tab-inactive:hover {
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col overflow-hidden">
+
+    <!-- Navbar -->
+    <nav class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <i class="fas fa-shield-halved text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white tracking-tight">Prototype Intelligent WAF</h1>
+                        <p class="text-xs text-slate-400">XSS Defense System</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span
+                        class="px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20">
+                        <i class="fas fa-circle text-[8px] mr-1.5 animate-pulse"></i>System Active
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-[95%] h-full flex flex-col">
+
+        <!-- Tabs -->
+        <div class="flex gap-8 border-b border-slate-800 mb-8">
+            <button onclick="switchTab('detector')" id="tab-detector"
+                class="tab-active pb-4 text-sm font-medium transition-colors flex items-center gap-2">
+                <i class="fas fa-flask"></i> Lab Pengujian (Detektor)
+            </button>
+            <button onclick="switchTab('simulation')" id="tab-simulation"
+                class="tab-inactive pb-4 text-sm font-medium transition-colors flex items-center gap-2">
+                <i class="fas fa-globe"></i> Simulasi Website (Implementasi)
+            </button>
+        </div>
+
+        <!-- Detector Section -->
+        <div id="view-detector" class="space-y-6 flex-grow h-full">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <!-- Input Column -->
+                <div class="lg:col-span-2 space-y-4 flex flex-col">
+                    <div class="glass-panel rounded-xl p-6 flex-col">
+                        <h2 class="text-xl font-semibold text-white mb-4">Uji Coba Detektor</h2>
+                        <p class="text-slate-400 text-sm mb-4">Masukkan payload atau teks sembarang untuk melihat
+                            bagaimana AI menganalisisnya.</p>
+
+                        <div class="space-y-2 flex-grow flex flex-col">
+                            <label class="text-xs font-medium text-slate-400 uppercase tracking-wider">Input
+                                Payload</label>
+                            <textarea id="detector-input"
+                                class="w-full flex-grow bg-slate-950 border border-slate-800 rounded-lg p-4 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-mono text-sm transition-all placeholder-slate-600 resize-none"
+                                placeholder="<script>alert('XSS')</script>"></textarea>
+                        </div>
+
+                        <div class="mt-4 flex justify-end">
+                            <button onclick="analyzePayload()"
+                                class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2">
+                                <i class="fas fa-search"></i> Analisis Payload
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Info Panel (About & Metrics) -->
+
+                <div class="glass-panel fixed bottom-20 left-1/2 -translate-x-1/2 w-full px-4 lg:w-[92.5%] lg:max-w-none ounded-xl p-4 max-h-[40vh] overflow-y-auto z-40">
+
+                        <!-- About Section -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                                <i class="fas fa-info-circle text-blue-500"></i> Tentang Sistem
+                            </h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                Prototype Intelligent WAF adalah sistem pertahanan keamanan berbasis <strong>Artificial
+                                    lligence (AI)</strong> yang dirancang untuk mendeteksi serangan
+                                <strong>Cross-Site Scripting (XSS)</strong>.
+                                <br><br>
+                                Sistem ini mampu mengenali pola serangan berbahaya secara real-time dengan tingkat
+                                akurasi tinggi, memberikan perlindungan proaktif terhadap ancaman keamanan web modern.
+                            </p>
+                        </div>
+
+                        <!-- Metrics Section -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                                <i class="fas fa-chart-line text-green-500"></i> Akurasi Model
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="p-3 bg-slate-950/50 rounded-lg border border-slate-800 text-center">
+                                    <div class="text-xs text-slate-500 mb-1">Accuracy</div>
+                                    <div class="text-xl font-bold text-blue-400">
+                                        {{ "%.2f"|format(metrics.accuracy * 100) if metrics else "99.74" }}%
+                                    </div>
+                                </div>
+                                <div class="p-3 bg-slate-950/50 rounded-lg border border-slate-800 text-center">
+                                    <div class="text-xs text-slate-500 mb-1">Precision</div>
+                                    <div class="text-xl font-bold text-green-400">
+                                        {{ "%.2f"|format(metrics.weighted_precision * 100) if metrics else "99.75" }}%
+                                    </div>
+                                </div>
+                                <div class="p-3 bg-slate-950/50 rounded-lg border border-slate-800 text-center">
+                                    <div class="text-xs text-slate-500 mb-1">Recall</div>
+                                    <div class="text-xl font-bold text-purple-400">
+                                        {{ "%.2f"|format(metrics.weighted_recall * 100) if metrics else "99.74" }}%
+                                    </div>
+                                </div>
+                                <div class="p-3 bg-slate-950/50 rounded-lg border border-slate-800 text-center">
+                                    <div class="text-xs text-slate-500 mb-1">F1-Score</div>
+                                    <div class="text-xl font-bold text-yellow-400">
+                                        {{ "%.2f"|format(metrics.weighted_f1 * 100) if metrics else "99.74" }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Column -->
+                <div class="lg:col-span-1 space-y-4">
+                    <!-- Model Info Card -->
+                    <div class="glass-panel rounded-xl p-6 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-slate-300">Status Model</h3>
+                            <i class="fas fa-brain text-blue-500"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-white mb-1">Active</div>
+                        <p class="text-xs text-slate-400">Model dilatih menggunakan dataset XSS Attacks.</p>
+                    </div>
+
+                    <!-- Analysis Result Card -->
+                    <div id="result-card" class="glass-panel rounded-xl p-6 hidden">
+                        <h3 class="text-sm font-medium text-slate-300 mb-4">Hasil Analisis</h3>
+
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-lg bg-slate-950/50 border border-slate-800">
+                                <div class="text-xs text-slate-500 mb-1">Prediksi</div>
+                                <div id="result-prediction" class="text-lg font-bold">--</div>
+                            </div>
+
+                            <div class="p-4 rounded-lg bg-slate-950/50 border border-slate-800">
+                                <div class="text-xs text-slate-500 mb-1">Tingkat Keyakinan (Confidence)</div>
+                                <div class="flex items-end gap-2">
+                                    <div id="result-confidence" class="text-2xl font-bold text-white">--%</div>
+                                    <div class="h-1.5 flex-grow bg-slate-800 rounded-full mb-2">
+                                        <div id="confidence-bar"
+                                            class="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                            style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Section -->
+        <div id="view-simulation" class="hidden space-y-6 flex-grow h-full">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <!-- Vulnerable App -->
+                <div class="lg:col-span-2 flex flex-col">
+                    <div
+                        class="glass-panel rounded-xl overflow-hidden border border-slate-700 shadow-2xl flex-grow flex flex-col">
+                        <!-- Browser Header -->
+                        <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center gap-4">
+                            <div class="flex gap-1.5">
+                                <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                            </div>
+                            <div
+                                class="flex-grow bg-slate-900 rounded px-3 py-1 text-xs text-slate-500 font-mono text-center border border-slate-800">
+                                <i class="fas fa-lock text-[10px] mr-1"></i> prototype-intelligent-waf.com/guestbook
+                            </div>
+                        </div>
+
+                        <!-- App Content -->
+                        <div class="p-8 bg-slate-900 flex-grow">
+                            <div class="mb-8">
+                                <h2 class="text-2xl font-bold text-white mb-2">Guestbook</h2>
+                                <p class="text-slate-400 text-sm">Leave a comment for the community.</p>
+                            </div>
+
+                            <!-- Comment Form -->
+                            <div class="space-y-4 max-w-xl">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-1">Name</label>
+                                    <input type="text"
+                                        class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        placeholder="John Doe">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-1">Message</label>
+                                    <textarea id="sim-input" rows="5"
+                                        class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        placeholder="Write something..."></textarea>
+                                </div>
+                                <button onclick="submitComment()"
+                                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded font-medium transition-colors">
+                                    Post Comment
+                                </button>
+                            </div>
+
+                            <!-- Mock Comments -->
+                            <div class="mt-10 space-y-4 border-t border-slate-800 pt-6">
+                                <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider">Recent Comments
+                                </h3>
+                                <div class="flex gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
+                                        A</div>
+                                    <div>
+                                        <div class="text-sm font-medium text-white">CtoXplt_'</div>
+                                        <div class="text-sm text-slate-400">Great website! Thanks for sharing.</div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
+                                        B</div>
+                                    <div>
+                                        <div class="text-sm font-medium text-white">ZrwXtr:V</div>
+                                        <div class="text-sm text-slate-400">Can you add more features?</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls & Logs -->
+                <div class="lg:col-span-1 space-y-4 flex flex-col">
+                    <!-- Control Panel -->
+                    <div class="glass-panel rounded-xl p-6">
+                        <h3 class="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+                            <i class="fas fa-sliders"></i> Control Panel
+                        </h3>
+
+                        <div
+                            class="flex items-center justify-between p-4 bg-slate-950/50 rounded-lg border border-slate-800">
+                            <div>
+                                <div class="text-sm font-medium text-white">AI Firewall</div>
+                                <div class="text-xs text-slate-500">Real-time protection</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="ai-toggle" class="sr-only peer">
+                                <div
+                                    class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- System Logs -->
+                    <div class="glass-panel rounded-xl p-6 flex-grow flex flex-col">
+                        <h3 class="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+                            <i class="fas fa-terminal"></i> System Logs
+                        </h3>
+                        <div id="system-logs"
+                            class="space-y-2 font-mono text-xs flex-grow overflow-y-auto custom-scrollbar">
+                            <div class="text-slate-500">[System] Ready to monitor traffic...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 mt-auto py-6 bg-slate-900/50">
+        <div class="container mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>&copy; 2025 Prototype Intelligent WAF. Powered by Scikit-Learn.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Tab Switching Logic
+        function switchTab(tab) {
+            const tabs = ['detector', 'simulation'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const view = document.getElementById(`view-${t}`);
+
+                if (t === tab) {
+                    btn.classList.remove('tab-inactive');
+                    btn.classList.add('tab-active');
+                    view.classList.remove('hidden');
+                } else {
+                    btn.classList.add('tab-inactive');
+                    btn.classList.remove('tab-active');
+                    view.classList.add('hidden');
+                }
+            });
+        }
+
+        // Logger Helper
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('system-logs');
+            const entry = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+
+            let color = 'text-slate-400';
+            if (type === 'danger') color = 'text-red-400';
+            if (type === 'success') color = 'text-green-400';
+            if (type === 'warning') color = 'text-yellow-400';
+
+            entry.className = `${color} border-l-2 border-slate-800 pl-2 py-1`;
+            if (type === 'danger') entry.classList.replace('border-slate-800', 'border-red-500/50');
+            if (type === 'success') entry.classList.replace('border-slate-800', 'border-green-500/50');
+
+            entry.innerHTML = `<span class="opacity-50">[${time}]</span> ${message}`;
+            logs.prepend(entry);
+        }
+
+        // Detector Logic
+        async function analyzePayload() {
+            const input = document.getElementById('detector-input').value;
+            if (!input.trim()) return;
+
+            const btn = document.querySelector('button[onclick="analyzePayload()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: input })
+                });
+                const data = await response.json();
+
+                // Update UI
+                const resultCard = document.getElementById('result-card');
+                const predEl = document.getElementById('result-prediction');
+                const confEl = document.getElementById('result-confidence');
+                const barEl = document.getElementById('confidence-bar');
+
+                resultCard.classList.remove('hidden');
+
+                if (data.prediction === 'XSS') {
+                    predEl.innerHTML = '<span class="text-red-500 flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> MALICIOUS (XSS DETECTED)</span>';
+                    predEl.parentElement.className = 'p-4 rounded-lg bg-red-500/10 border border-red-500/20';
+                    barEl.className = 'h-full bg-red-500 rounded-full transition-all duration-500';
+                } else {
+                    predEl.innerHTML = '<span class="text-green-500 flex items-center gap-2"><i class="fas fa-check-circle"></i> SAFE (BENIGN)</span>';
+                    predEl.parentElement.className = 'p-4 rounded-lg bg-green-500/10 border border-green-500/20';
+                    barEl.className = 'h-full bg-green-500 rounded-full transition-all duration-500';
+                }
+
+                const confidence = parseFloat(data.confidence_score) * 100;
+                confEl.innerText = `${confidence.toFixed(2)}%`;
+                setTimeout(() => barEl.style.width = `${confidence}%`, 100);
+
+            } catch (error) {
+                console.error(error);
+                alert('Error analyzing payload');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Simulation Logic
+        async function submitComment() {
+            const input = document.getElementById('sim-input').value;
+            const aiEnabled = document.getElementById('ai-toggle').checked;
+
+            if (!input.trim()) return;
+
+            addLog(`User submitting comment: "${input.substring(0, 20)}${input.length > 20 ? '...' : ''}"`);
+
+            if (aiEnabled) {
+                addLog('AI Firewall scanning content...', 'info');
+                try {
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: input })
+                    });
+                    const data = await response.json();
+
+                    if (data.prediction === 'XSS') {
+                        addLog(`🚫 BLOCKED: Malicious XSS payload detected! (Confidence: ${(data.confidence_score * 100).toFixed(1)}%)`, 'danger');
+
+                        // Show Blocked Toast/Alert
+                        const toast = document.createElement('div');
+                        toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 animate-bounce';
+                        toast.innerHTML = '<i class="fas fa-shield-halved text-2xl"></i><div><div class="font-bold">Firewall Blocked Request</div><div class="text-sm">Malicious XSS pattern detected.</div></div>';
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 3000);
+                        return;
+                    } else {
+                        addLog('✅ ALLOWED: Content is safe.', 'success');
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                addLog('⚠️ WARNING: AI Firewall is OFF. Traffic not scanned.', 'warning');
+            }
+
+            // Simulate "Posting" (or executing XSS)
+            // Simple heuristic to simulate XSS execution for demo purposes
+            if (input.toLowerCase().includes('<script>') || input.toLowerCase().includes('javascript:') || input.toLowerCase().includes('onerror')) {
+                if (!aiEnabled) {
+                    addLog('💥 CRITICAL: XSS Payload Executed on Client!', 'danger');
+                    alert('XSS EXECUTED!\n\nThis is a simulation of a successful attack.\nYour cookies could have been stolen.');
+                }
+            } else {
+                // Add to comments (visual only)
+                addLog('Comment posted successfully.', 'success');
+                document.getElementById('sim-input').value = '';
+                alert('Comment posted!');
+            }
+        }
+    </script>
+</body>
+
+</html>
